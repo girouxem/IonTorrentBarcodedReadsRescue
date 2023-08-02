@@ -1,0 +1,8 @@
+#!/bin/bash 
+#$ -S /bin/bash
+              # Ensure .e and .o and other output files go to working directory
+              #$ -cwd
+              # Request one slot in the smp environment
+              #$ -pe smp 1
+# Actual linux command for qsub 
+cd /isilon/cfia-ottawa-fallowfield/users/girouxeml/PIRL_working_directory/ionTorrent_Barcode_read_splitting/data/split_fastq/ && gzip /isilon/cfia-ottawa-fallowfield/users/girouxeml/PIRL_working_directory/ionTorrent_Barcode_read_splitting/data/split_fastq/ITS1F_b30.fastq

@@ -1,0 +1,8 @@
+#!/bin/bash 
+#$ -S /bin/bash
+              # Ensure .e and .o and other output files go to working directory
+              #$ -cwd
+              # Request one slot in the smp environment
+              #$ -pe smp 1
+# Actual linux command for qsub 
+samtools view -b /isilon/cfia-ottawa-fallowfield/users/girouxeml/PIRL_working_directory/ionTorrent_Barcode_read_splitting/data/with_header_sam/ITS1F_b02.sam -o /isilon/cfia-ottawa-fallowfield/users/girouxeml/PIRL_working_directory/ionTorrent_Barcode_read_splitting/data/splitted_BAM/ITS1F_b02.bam
