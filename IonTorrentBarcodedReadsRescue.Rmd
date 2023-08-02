@@ -1,0 +1,135 @@
+---
+title: "no_match.bam_extraction_IonTorrent"
+author: "Emily Giroux"
+date: "2023-06-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+install.packages("data.table")
+library("data.table")
+sharedPath <- "/isilon/cfia-ottawa-fallowfield/users/girouxeml/PIRL_working_directory/"
+analysis <- "ionTorrent_Barcode_read_splitting/"
+sharedPathAn <- paste(sharedPath, analysis, sep = "")
+```
+
+Read barcode csv
+```{r}
+barcodeFilePath <- paste(sharedPathAn, "PIRL_ITSF_1-31.csv", sep = "")
+barcodeCSV <- read.csv(file = barcodeFilePath)
+```
+
+Starting with BAM file    
+```{r}
+rawDataPath <- "/isilon/cfia-ottawa-fallowfield/users/girouxeml/data/raw/Ion_Torrent/pirl_general/R_2022_06_02_00_57_59_user_S5-0143-209-IRIA_2021_Canola-BCC-BCF-pl2_ITS2_2022-06-01/"
+rawBamPath <- paste(rawDataPath, "nomatch_rawlib.basecaller.bam", sep = "")
+```
+
+Capture header:
+```{r}
+prefix <- "A_capture_header"
+
+cmd <- paste("samtools view -H ", rawBamPath, " > ",
+             paste(sharedPathAn, "header.sam", sep = ""),
+             sep = "")
+
+suffix <- ".sub"
+MakeQsubs(cmd, prefix, suffix)
+```
+Make data dirs:
+```{r}
+dir.create(paste(sharedPathAn, "data/", sep = ""),
+           showWarnings = TRUE,
+           recursive = FALSE)
+dataDirPath <- paste(sharedPathAn, "data/", sep = "")
+# Make data sam directory:
+dir.create(paste(dataDirPath, "sam/", sep = ""),
+           showWarnings = TRUE,
+           recursive = FALSE)
+samDataPath <- paste(dataDirPath, "sam/", sep = "")
+```
+
+Retrieve barcoded reads:
+```{r}
+prefix <- "B_retrieveBarcoded_Reads"
+
+cmd <- with(barcodeCSV, 
+            paste('samtools view ', rawBamPath, ' | grep ', '"', barcodeCSV$sequence, '"',
+                  ' > ', paste(samDataPath, barcodeCSV$id_str, '.sam', sep = ''), sep = ''), 
+                  sep = '')
+suffix <- ".sub"
+MakeQsubs(cmd, prefix, suffix)
+```
+Cat together header to each sam file:
+```{r}
+dir.create(paste(dataDirPath, "with_header_sam/", sep = ""),
+           showWarnings = TRUE,
+           recursive = FALSE)
+samwHeaderDataPath <- paste(dataDirPath, "with_header_sam/", sep = "")
+
+prefix <- "C_catted_header_SAM"
+
+cmd <- with(barcodeCSV,
+            paste("cat ", paste(sharedPathAn, "header.sam", sep = ""),
+                  " ", paste(samDataPath, barcodeCSV$id_str, ".sam", sep = ""),
+                  " > ", paste(samwHeaderDataPath, barcodeCSV$id_str, ".sam", sep = ""), sep = ""),
+            sep = "")
+cmd
+suffix <- ".sub"
+MakeQsubs(cmd, prefix, suffix)
+```
+Convert file from sam to bam:
+```{r}
+dir.create(paste(dataDirPath, "splitted_BAM/", sep = ""),
+           showWarnings = TRUE,
+           recursive = FALSE)
+splitted_BAMDataPath <- paste(dataDirPath, "splitted_BAM/", sep = "")
+
+prefix <- "D_sam_to_bam"
+cmd <- with(barcodeCSV, 
+            paste("samtools view -b ", 
+                  paste(samwHeaderDataPath, barcodeCSV$id_str, ".sam", sep = ""),
+                  " -o ",
+                  paste(splitted_BAMDataPath, barcodeCSV$id_str, ".bam", sep = ""), sep = ""),
+            sep = "")
+cmd
+
+suffix <- ".sub"
+MakeQsubs(cmd, prefix, suffix)
+```
+Convert file from bam to fastq:
+```{r}
+dir.create(paste(dataDirPath, "split_fastq/", sep = ""),
+           showWarnings = TRUE,
+           recursive = FALSE)
+split_fastq_DataPath <- paste(dataDirPath, "split_fastq/", sep = "")
+
+prefix <- "E_bam_to_fastq"
+cmd <- with(barcodeCSV, 
+            paste("samtools bam2fq ", 
+                  paste(splitted_BAMDataPath, barcodeCSV$id_str, ".bam", sep = ""),
+            " > ",
+            paste(split_fastq_DataPath, barcodeCSV$id_str, ".fastq", sep = ""), sep = ""),
+            sep = "")
+cmd
+
+suffix <- ".sub"
+MakeQsubs(cmd, prefix, suffix)
+```
+Gzip fastq files:
+```{r}
+prefix <- "F_gzip_fastq"
+cmd <- with(barcodeCSV,
+            paste("cd ", split_fastq_DataPath, 
+                  " && gzip ", paste(split_fastq_DataPath, barcodeCSV$id_str, ".fastq", sep = ""), sep = ""),
+            sep = "")
+cmd
+suffix <- ".sub"
+MakeQsubs(cmd, prefix, suffix)
+```
+
+    

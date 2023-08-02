@@ -1,0 +1,18 @@
+BAM file
+
+Capture header:
+$ samtools view -H nomatch_rawlib.basecaller.bam > header
+
+Retrieve barcode 1 reads:
+$ samtools view nomatch_rawlib.basecaller.bam | grep "CTAAGGTAACGATCTTGGTCATTTAGAGGAAGTAA" > barcode_01
+
+Cat together header and barcode_01 sam file:
+$ cat header barcode_01 > barcode_01.sam
+
+Convert file from sam to bam:
+$ samtools view -b barcode_01.sam -o barcode_01.bam
+
+Convert file from bam to fastq:
+$ samtools bam2fq barcode_01.bam > barcode_01.fastq
+[M::bam2fq_mainloop] discarded 0 singletons
+[M::bam2fq_mainloop] processed 110706 reads
